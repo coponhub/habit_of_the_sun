@@ -120,10 +120,10 @@ heat_counter.count(0, getnow() - prev)
 for i,v in enumerate(curveE):
     if i % 100 == 0:
         t = time.strftime("%H:%M:%S", time.localtime())
-        print(v, t)
+        print(v, t, heat)
     #interval = lazy(v)
     interval = BASE_INTERVAL
     time.sleep(interval)
-    change_lum(v)
+    change_lum(v + heat_counter.heat//10)
     heat_counter.count(v,interval)
 
