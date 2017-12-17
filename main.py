@@ -97,7 +97,7 @@ class HeatCounter():
     def update(self):
         self.heat = cooldown(self.sum_interval, self.heat)
         self.heat += heatup(self.sum_lum//count, self.sum_interval)
-        setlast(getnow(), heat)
+        setlast(getnow(), self.heat)
     def reset(self):
         self.sum_lum = self.sum_interval = self._count = 0
 
