@@ -43,7 +43,7 @@ def getnow():
     
 MAX_PWM_DUTY = 1000000
 BASE_INTERVAL = 0.04
-step = 0.0002
+step = 0.002
 PORT = 18
 FREQ = 2000
 GRAD = 3
@@ -53,8 +53,7 @@ MIN_LUM=118000
 LIFTER_LUM_DIFF = 10000
 MIN_LUM_LIFT=30000
 MIN_LUM_CEIL = MIN_LUM + MIN_LUM_LIFT
-HEAT_TICK = 20
-#COOLDOWN_PAR_MINUTE = 100
+HEAT_TICK = 2
 
 def pos(x):
     return max(0,x)
@@ -70,17 +69,17 @@ def rescale(value):
 def lazy(value):
     return BASE_INTERVAL * rescale(value)
 
+# TimeRange, Heat -> Heat
 def cooldown(timerange, heat):
-    return pos(heat/(timerange/30))
+    return round(heat * timerange * 0.01)
+# Luminance, TimeRange -> Heat
 def heatup(lum_average, timerange):
-    return (lum_average // 100) * timerange
+    return round((lum_average // 100) * timerange)
 class HeatCounter():
     def __init__(self, heat=0, tick=HEAT_TICK):
-        self.sum_lum = 0
-        self.sum_interval = 0
         self.tick = tick
         self.heat = heat
-        self._count = 0
+        self.reset()
 
     def count(self, lum, interval):
         self.accumrate(lum, interval)
@@ -89,14 +88,19 @@ class HeatCounter():
             self.reset()
     
     def accumrate(self, lum, interval):
-        self.sum_lum += max(0, lum - MIN_LUM)
+        self.sum_lum += pos(lum - MIN_LUM)
         self.sum_interval += interval
         self._count += 1
     def overTick(self):
         return self.sum_interval >= self.tick
     def update(self):
-        self.heat = cooldown(self.sum_interval, self.heat)
-        self.heat += heatup(self.sum_lum//count, self.sum_interval)
+        heater = heatup(self.sum_lum//self._count, self.sum_interval)
+        heat = heater + self.heat
+        cooler = cooldown(self.sum_interval, heat)
+        self.heat = pos(heat - cooler)
+        print("heater=%s cooler=%s self.heat=%s" % (heater,cooler,self.heat))
+        if not isinstance(self.heat, int):
+            raise Exception("self.heat not integral")
         setlast(getnow(), self.heat)
     def reset(self):
         self.sum_lum = self.sum_interval = self._count = 0
@@ -105,7 +109,7 @@ pi = pigpio.pi()
 atexit.register(pi.stop)
 
 def change_lum(lightness):
-    pi.hardware_PWM(PORT, FREQ, min(MAX_LUM, lightness))
+    pi.hardware_PWM(PORT, FREQ, lightness)
 
 atexit.register(change_lum, 0)
 
@@ -120,10 +124,10 @@ heat_counter.count(0, getnow() - prev)
 for i,v in enumerate(curveE):
     if i % 100 == 0:
         t = time.strftime("%H:%M:%S", time.localtime())
-        print(v, t, heat)
+        print(v, t)
     #interval = lazy(v)
     interval = BASE_INTERVAL
     time.sleep(interval)
-    change_lum(v + heat_counter.heat//10)
+    change_lum(min(MAX_LUM, v + heat_counter.heat//100))
     heat_counter.count(v,interval)
 
