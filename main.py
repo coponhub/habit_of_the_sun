@@ -43,17 +43,18 @@ def getnow():
     
 MAX_PWM_DUTY = 1000000
 BASE_INTERVAL = 0.04
-step = 0.002
+step = 0.0008
 PORT = 18
 FREQ = 2000
 GRAD = 3
 TIME_GRAD = 1.01
 MAX_LUM=1000000
-MIN_LUM=118000
+MIN_LUM=90000
 LIFTER_LUM_DIFF = 10000
 MIN_LUM_LIFT=30000
 MIN_LUM_CEIL = MIN_LUM + MIN_LUM_LIFT
-HEAT_TICK = 2
+HEAT_TICK = 10
+HEAT_DIVER = 100
 
 def pos(x):
     return max(0,x)
@@ -71,7 +72,7 @@ def lazy(value):
 
 # TimeRange, Heat -> Heat
 def cooldown(timerange, heat):
-    return round(heat * timerange * 0.01)
+    return round(heat * timerange * 0.002)
 # Luminance, TimeRange -> Heat
 def heatup(lum_average, timerange):
     return round((lum_average // 100) * timerange)
@@ -88,19 +89,20 @@ class HeatCounter():
             self.reset()
     
     def accumrate(self, lum, interval):
-        self.sum_lum += pos(lum - MIN_LUM)
+        #self.sum_lum += pos(lum - MIN_LUM)
+        self.sum_lum += pos(lum)
         self.sum_interval += interval
         self._count += 1
     def overTick(self):
         return self.sum_interval >= self.tick
     def update(self):
         heater = heatup(self.sum_lum//self._count, self.sum_interval)
-        heat = heater + self.heat
+        heat = heater + (self.heat*HEAT_DIVER)
         cooler = cooldown(self.sum_interval, heat)
-        self.heat = pos(heat - cooler)
-        print("heater=%s cooler=%s self.heat=%s" % (heater,cooler,self.heat))
+        self.heat = pos(heat - cooler) // HEAT_DIVER
+        print("heater=%s cooler=%s heat=%s" % (heater,cooler,self.heat))
         if not isinstance(self.heat, int):
-            raise Exception("self.heat not integral")
+            raise Exception("self.heat is not integral")
         setlast(getnow(), self.heat)
     def reset(self):
         self.sum_lum = self.sum_interval = self._count = 0
@@ -128,6 +130,6 @@ for i,v in enumerate(curveE):
     #interval = lazy(v)
     interval = BASE_INTERVAL
     time.sleep(interval)
-    change_lum(min(MAX_LUM, v + heat_counter.heat//100))
-    heat_counter.count(v,interval)
-
+    val = min(MAX_LUM, v + heat_counter.heat)
+    change_lum(val)
+    heat_counter.count(val,interval)
