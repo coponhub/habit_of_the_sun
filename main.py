@@ -55,6 +55,7 @@ MIN_LUM_LIFT=30000
 MIN_LUM_CEIL = MIN_LUM + MIN_LUM_LIFT
 HEAT_TICK = 10
 HEAT_DIVER = 100
+HEAT_BUFFER_UNIT = 1
 
 def pos(x):
     return max(0,x)
@@ -79,7 +80,7 @@ def heatup(lum_average, timerange):
 class HeatCounter():
     def __init__(self, heat=0, tick=HEAT_TICK):
         self.tick = tick
-        self.heat = heat
+        self.heat = self.heatbuffer = heat
         self.reset()
 
     def count(self, lum, interval):
@@ -100,12 +101,20 @@ class HeatCounter():
         heat = heater + (self.heat*HEAT_DIVER)
         cooler = cooldown(self.sum_interval, heat)
         self.heat = pos(heat - cooler) // HEAT_DIVER
-        print("heater=%s cooler=%s heat=%s" % (heater,cooler,self.heat))
+        print("heater=%s cooler=%s heat=%s heatbuffer=%s" % (heater,cooler,self.heat,self.heatbuffer))
         if not isinstance(self.heat, int):
             raise Exception("self.heat is not integral")
         setlast(getnow(), self.heat)
     def reset(self):
         self.sum_lum = self.sum_interval = self._count = 0
+    def _addheat(self,val):
+        if self.heatbuffer < self.heat:
+            self.heatbuffer += val
+        elif self.heatbuffer > self.heat:
+            self.heatbuffer -= val
+    def getheat(self):
+        self._addheat(HEAT_BUFFER_UNIT)
+        return self.heatbuffer
 
 pi = pigpio.pi()
 atexit.register(pi.stop)
@@ -130,6 +139,6 @@ for i,v in enumerate(curveE):
     #interval = lazy(v)
     interval = BASE_INTERVAL
     time.sleep(interval)
-    val = min(MAX_LUM, v + heat_counter.heat)
+    val = min(MAX_LUM, v + heat_counter.getheat())
     change_lum(val)
     heat_counter.count(val,interval)
