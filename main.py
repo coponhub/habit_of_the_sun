@@ -48,14 +48,15 @@ PORT = 18
 FREQ = 2000
 GRAD = 3
 TIME_GRAD = 1.01
-MAX_LUM=1000000
-MIN_LUM=90000
+MAX_LUM=100 * 10**4
+MIN_LUM=  6 * 10**4
 LIFTER_LUM_DIFF = 10000
 MIN_LUM_LIFT=30000
 MIN_LUM_CEIL = MIN_LUM + MIN_LUM_LIFT
 HEAT_TICK = 10
 HEAT_DIVER = 100
-HEAT_BUFFER_UNIT = 1
+HEAT_BUFFER_UNIT = 2
+COOLER_CONST= 8 * 10**-4
 
 def pos(x):
     return max(0,x)
@@ -73,14 +74,15 @@ def lazy(value):
 
 # TimeRange, Heat -> Heat
 def cooldown(timerange, heat):
-    return round(heat * timerange * 0.002)
+    return round(heat * timerange * COOLER_CONST)
 # Luminance, TimeRange -> Heat
 def heatup(lum_average, timerange):
     return round((lum_average // 100) * timerange)
 class HeatCounter():
     def __init__(self, heat=0, tick=HEAT_TICK):
         self.tick = tick
-        self.heat = self.heatbuffer = heat
+        self.heat = heat
+        self.heatbuffer = 0
         self.reset()
 
     def count(self, lum, interval):
@@ -110,7 +112,7 @@ class HeatCounter():
     def _addheat(self,val):
         if self.heatbuffer < self.heat:
             self.heatbuffer += val
-        elif self.heatbuffer > self.heat:
+        elif self.heatbuffer + val-1 > self.heat:
             self.heatbuffer -= val
     def getheat(self):
         self._addheat(HEAT_BUFFER_UNIT)
@@ -131,14 +133,16 @@ curveE = itertools.cycle(curve)
 prev, heat = getlast()
 heat_counter = HeatCounter(heat)
 heat_counter.count(0, getnow() - prev)
+heat_counter.heatbuffer = heat_counter.heat
 
+print(heat_counter.heatbuffer, heat_counter.heat)
 for i,v in enumerate(curveE):
-    if i % 100 == 0:
-        t = time.strftime("%H:%M:%S", time.localtime())
-        print(v, t)
     #interval = lazy(v)
     interval = BASE_INTERVAL
     time.sleep(interval)
     val = min(MAX_LUM, v + heat_counter.getheat())
     change_lum(val)
     heat_counter.count(val,interval)
+    if i % 100 == 0:
+        t = time.strftime("%H:%M:%S", time.localtime())
+        print(v, val, t)
