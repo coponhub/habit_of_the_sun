@@ -43,7 +43,7 @@ def getnow():
     
 MAX_PWM_DUTY = 1000000
 BASE_INTERVAL = 0.04
-step = 0.0008
+step = 0.0004
 PORT = 18
 FREQ = 2000
 GRAD = 3
@@ -53,10 +53,11 @@ MIN_LUM=  6 * 10**4
 LIFTER_LUM_DIFF = 10000
 MIN_LUM_LIFT=30000
 MIN_LUM_CEIL = MIN_LUM + MIN_LUM_LIFT
-HEAT_TICK = 10
+HEAT_TICK = 20
 HEAT_DIVER = 100
 HEAT_BUFFER_UNIT = 2
-COOLER_CONST= 8 * 10**-4
+COOLER_CONST= 6 * 10**-4 #^HEATUP
+COOLER_MULTI= 1 * 10**-2 +1#^HEATDOWN
 
 def pos(x):
     return max(0,x)
@@ -74,7 +75,7 @@ def lazy(value):
 
 # TimeRange, Heat -> Heat
 def cooldown(timerange, heat):
-    return round(heat * timerange * COOLER_CONST)
+    return round(heat**COOLER_MULTI * timerange * COOLER_CONST)
 # Luminance, TimeRange -> Heat
 def heatup(lum_average, timerange):
     return round((lum_average // 100) * timerange)
@@ -109,7 +110,7 @@ class HeatCounter():
         setlast(getnow(), self.heat)
     def reset(self):
         self.sum_lum = self.sum_interval = self._count = 0
-    def _addheat(self,val):
+    def _addheat(self, val):
         if self.heatbuffer < self.heat:
             self.heatbuffer += val
         elif self.heatbuffer + val-1 > self.heat:
