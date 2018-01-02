@@ -42,24 +42,24 @@ def getnow():
     return round(time.time())
     
 MAX_PWM_DUTY = 1000000
-BASE_INTERVAL = 0.04
+BASE_INTERVAL = 0.08
 step = 0.0008
 PORT = 18
 FREQ = 2000
 GRAD = 3
 MAX_LAZY = 6
-TIME_GRAD = 7
+LAZY_GRAD = 8
 MAX_LUM=100 * 10**4
 MIN_LUM=  8 * 10**4
 BOOT_LUM= 5 * 10**4
 LIFTER_LUM_DIFF = 10000
 MIN_LUM_LIFT=30000
 MIN_LUM_CEIL = MIN_LUM + MIN_LUM_LIFT
-HEAT_TICK = 10
+HEAT_TICK = 20
 HEAT_DIVER = 100
 HEAT_BUFFER_UNIT = 2
 COOLER_CONST=      4 *10**-4
-COOLER_MULTI= 1 + 16 *10**-4
+COOLER_MULTI= 1 + 22 *10**-4
 
 def pos(x, floor=0):
     return max(floor, x)
@@ -71,7 +71,7 @@ def wave(rad):
     return around(sine(rad) * (MAX_LUM) + MIN_LUM)
 
 def rescale(value):
-    return pos(MAX_LAZY - math.log(value - MIN_LUM + 1, TIME_GRAD), 1)
+    return pos(MAX_LAZY - math.log(value - MIN_LUM + 1, LAZY_GRAD), 1)
 def lazy(value):
     return BASE_INTERVAL * rescale(value)
 
