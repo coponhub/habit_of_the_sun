@@ -49,15 +49,16 @@ FREQ = 2000
 GRAD = 3
 TIME_GRAD = 1.01
 MAX_LUM=100 * 10**4
-MIN_LUM=  6 * 10**4
+MIN_LUM=  8 * 10**4
+BOOT_LUM= 5 * 10**4
 LIFTER_LUM_DIFF = 10000
 MIN_LUM_LIFT=30000
 MIN_LUM_CEIL = MIN_LUM + MIN_LUM_LIFT
 HEAT_TICK = 20
 HEAT_DIVER = 100
 HEAT_BUFFER_UNIT = 2
-COOLER_CONST= 6 * 10**-4 #^HEATUP
-COOLER_MULTI= 1 * 10**-2 +1#^HEATDOWN
+COOLER_CONST=      4 *10**-4
+COOLER_MULTI= 1 + 14 *10**-4
 
 def pos(x):
     return max(0,x)
@@ -72,6 +73,7 @@ def rescale(value):
     return pos(10 - math.log(value - MIN_LUM + 1, TIME_GRAD))
 def lazy(value):
     return BASE_INTERVAL * rescale(value)
+
 
 # TimeRange, Heat -> Heat
 def cooldown(timerange, heat):
@@ -127,6 +129,11 @@ def change_lum(lightness):
 
 atexit.register(change_lum, 0)
 
+def boot(value):
+    for v in range(BOOT_LUM, value, 4):
+        change_lum(v)
+        time.sleep(BASE_INTERVAL)
+
 curve = (wave(x) for x in frange(-math.pi, math.pi, step))
 #curve3 = flatrepeat(curve,3)
 curveE = itertools.cycle(curve)
@@ -135,6 +142,8 @@ prev, heat = getlast()
 heat_counter = HeatCounter(heat)
 heat_counter.count(0, getnow() - prev)
 heat_counter.heatbuffer = heat_counter.heat
+
+#boot(MIN_LUM + heat_counter.heat)
 
 print(heat_counter.heatbuffer, heat_counter.heat)
 for i,v in enumerate(curveE):
