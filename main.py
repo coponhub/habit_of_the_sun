@@ -47,7 +47,8 @@ step = 0.0008
 PORT = 18
 FREQ = 2000
 GRAD = 3
-TIME_GRAD = 18
+MAX_LAZY = 6
+TIME_GRAD = 7
 MAX_LUM=100 * 10**4
 MIN_LUM=  8 * 10**4
 BOOT_LUM= 5 * 10**4
@@ -58,7 +59,7 @@ HEAT_TICK = 10
 HEAT_DIVER = 100
 HEAT_BUFFER_UNIT = 2
 COOLER_CONST=      4 *10**-4
-COOLER_MULTI= 1 + 14 *10**-4
+COOLER_MULTI= 1 + 16 *10**-4
 
 def pos(x, floor=0):
     return max(floor, x)
@@ -70,7 +71,7 @@ def wave(rad):
     return around(sine(rad) * (MAX_LUM) + MIN_LUM)
 
 def rescale(value):
-    return pos(4 - math.log(value - MIN_LUM + 1, TIME_GRAD), 1)
+    return pos(MAX_LAZY - math.log(value - MIN_LUM + 1, TIME_GRAD), 1)
 def lazy(value):
     return BASE_INTERVAL * rescale(value)
 
