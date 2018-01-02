@@ -43,25 +43,25 @@ def getnow():
     
 MAX_PWM_DUTY = 1000000
 BASE_INTERVAL = 0.04
-step = 0.0004
+step = 0.0008
 PORT = 18
 FREQ = 2000
 GRAD = 3
-TIME_GRAD = 1.01
+TIME_GRAD = 18
 MAX_LUM=100 * 10**4
 MIN_LUM=  8 * 10**4
 BOOT_LUM= 5 * 10**4
 LIFTER_LUM_DIFF = 10000
 MIN_LUM_LIFT=30000
 MIN_LUM_CEIL = MIN_LUM + MIN_LUM_LIFT
-HEAT_TICK = 20
+HEAT_TICK = 10
 HEAT_DIVER = 100
 HEAT_BUFFER_UNIT = 2
 COOLER_CONST=      4 *10**-4
 COOLER_MULTI= 1 + 14 *10**-4
 
-def pos(x):
-    return max(0,x)
+def pos(x, floor=0):
+    return max(floor, x)
 def around(x):
     return abs(round(x))
 def sine(rad):
@@ -70,7 +70,7 @@ def wave(rad):
     return around(sine(rad) * (MAX_LUM) + MIN_LUM)
 
 def rescale(value):
-    return pos(10 - math.log(value - MIN_LUM + 1, TIME_GRAD))
+    return pos(4 - math.log(value - MIN_LUM + 1, TIME_GRAD), 1)
 def lazy(value):
     return BASE_INTERVAL * rescale(value)
 
@@ -129,8 +129,8 @@ def change_lum(lightness):
 
 atexit.register(change_lum, 0)
 
-def boot(value):
-    for v in range(BOOT_LUM, value, 4):
+def bootup(value):
+    for v in range(BOOT_LUM, value, 400):
         change_lum(v)
         time.sleep(BASE_INTERVAL)
 
@@ -143,12 +143,12 @@ heat_counter = HeatCounter(heat)
 heat_counter.count(0, getnow() - prev)
 heat_counter.heatbuffer = heat_counter.heat
 
-#boot(MIN_LUM + heat_counter.heat)
+bootup(MIN_LUM + heat_counter.heat)
 
 print(heat_counter.heatbuffer, heat_counter.heat)
 for i,v in enumerate(curveE):
-    #interval = lazy(v)
-    interval = BASE_INTERVAL
+    #interval = BASE_INTERVAL
+    interval = lazy(v)
     time.sleep(interval)
     val = min(MAX_LUM, v + heat_counter.getheat())
     change_lum(val)
