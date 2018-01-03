@@ -1,4 +1,5 @@
 
+
 __author__ = 'Aoyagi Knesuke'
 
 import os
@@ -8,12 +9,42 @@ import math
 import time
 import pigpio
 
+MAX_PWM_DUTY = 1000000
+BASE_INTERVAL = 0.04
+step = 0.0008
+PORT = 18
+FREQ = 2000
+GRAD = 3
+MAX_LAZY = 6
+LAZY_GRAD = 8
+MAX_LUM=100 * 10**4
+MIN_LUM=  8 * 10**4
+BOOT_LUM= 5 * 10**4
+LIFTER_LUM_DIFF = 10000
+MIN_LUM_LIFT=30000
+MIN_LUM_CEIL = MIN_LUM + MIN_LUM_LIFT
+HEAT_TICK = 20
+HEAT_DIVER = 100
+HEAT_BUFFER_UNIT = 4
+ACCEL_START = 10
+HEATER_GRAD= 1.005
+COOLER_CONST=        1 *10**-4
+COOLER_MULTI= 1 + 1160 *10**-4
+
 # class Accumrator():
 #     def __init__(self, slots={"x":0,"y":0}):
 #         for name, initial in slots.items():
 #             setattr(self, name, initial)
 
 #     def add(*vals):
+
+def abscrop(v, n):
+    if v > 0:
+        return max(n,v)
+    elif v < 0:
+        return min(-n,v)
+    else:
+        return 0
 
 def frange(start, stop, step):
     return itertools.takewhile(lambda x: x< stop, itertools.count(start, step))
@@ -41,25 +72,6 @@ def getlast():
 def getnow():
     return round(time.time())
     
-MAX_PWM_DUTY = 1000000
-BASE_INTERVAL = 0.08
-step = 0.0008
-PORT = 18
-FREQ = 2000
-GRAD = 3
-MAX_LAZY = 6
-LAZY_GRAD = 8
-MAX_LUM=100 * 10**4
-MIN_LUM=  8 * 10**4
-BOOT_LUM= 5 * 10**4
-LIFTER_LUM_DIFF = 10000
-MIN_LUM_LIFT=30000
-MIN_LUM_CEIL = MIN_LUM + MIN_LUM_LIFT
-HEAT_TICK = 20
-HEAT_DIVER = 100
-HEAT_BUFFER_UNIT = 2
-COOLER_CONST=      4 *10**-4
-COOLER_MULTI= 1 + 22 *10**-4
 
 def pos(x, floor=0):
     return max(floor, x)
@@ -81,7 +93,8 @@ def cooldown(timerange, heat):
     return round(heat**COOLER_MULTI * timerange * COOLER_CONST)
 # Luminance, TimeRange -> Heat
 def heatup(lum_average, timerange):
-    return round((lum_average // 100) * timerange)
+    v = lum_average // 100
+    return round((v + math.log(MAX_LUM-v,HEATER_GRAD)+1) * timerange)
 class HeatCounter():
     def __init__(self, heat=0, tick=HEAT_TICK):
         self.tick = tick
@@ -119,7 +132,8 @@ class HeatCounter():
         elif self.heatbuffer + val-1 > self.heat:
             self.heatbuffer -= val
     def getheat(self):
-        self._addheat(HEAT_BUFFER_UNIT)
+        #self._addheat(HEAT_BUFFER_UNIT)
+        self.heatbuffer += abscrop((self.heat - self.heatbuffer) // ACCEL_START, 1)
         return self.heatbuffer
 
 pi = pigpio.pi()
@@ -131,9 +145,9 @@ def change_lum(lightness):
 atexit.register(change_lum, 0)
 
 def bootup(value):
-    for v in range(BOOT_LUM, value, 400):
+    for v in range(BOOT_LUM, value, 200):
         change_lum(v)
-        time.sleep(BASE_INTERVAL)
+        time.sleep(0.02)
 
 curve = (wave(x) for x in frange(-math.pi, math.pi, step))
 #curve3 = flatrepeat(curve,3)
