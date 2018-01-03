@@ -29,7 +29,7 @@ HEAT_BUFFER_UNIT = 4
 ACCEL_START = 10
 HEATER_GRAD= 1.005
 COOLER_CONST=        1 *10**-4
-COOLER_MULTI= 1 + 1160 *10**-4
+COOLER_MULTI= 1 + 1640 *10**-4
 
 # class Accumrator():
 #     def __init__(self, slots={"x":0,"y":0}):
@@ -158,7 +158,7 @@ heat_counter = HeatCounter(heat)
 heat_counter.count(0, getnow() - prev)
 heat_counter.heatbuffer = heat_counter.heat
 
-bootup(MIN_LUM + heat_counter.heat)
+#bootup(MIN_LUM + heat_counter.heat)
 
 print(heat_counter.heatbuffer, heat_counter.heat)
 for i,v in enumerate(curveE):
