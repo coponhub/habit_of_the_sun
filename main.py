@@ -18,7 +18,7 @@ GRAD = 3
 MAX_LAZY = 6
 LAZY_GRAD = 8
 MAX_LUM=100 * 10**4
-MIN_LUM=  8 * 10**4
+MIN_LUM=  7 * 10**4
 BOOT_LUM= 5 * 10**4
 LIFTER_LUM_DIFF = 10000
 MIN_LUM_LIFT=30000
@@ -27,7 +27,7 @@ HEAT_TICK = 20
 HEAT_DIVER = 100
 HEAT_BUFFER_UNIT = 4
 ACCEL_START = 10
-HEATER_GRAD= 1.005
+HEATER_GRAD= 1.002
 COOLER_CONST=        1 *10**-4
 COOLER_MULTI= 1 + 1640 *10**-4
 
@@ -39,12 +39,12 @@ COOLER_MULTI= 1 + 1640 *10**-4
 #     def add(*vals):
 
 def abscrop(v, n):
-    if v > 0:
-        return max(n,v)
-    elif v < 0:
-        return min(-n,v)
-    else:
+    if v == 0:
         return 0
+    elif v > 0:
+        return max(n,v)
+    else:
+        return min(-n,v)
 
 def frange(start, stop, step):
     return itertools.takewhile(lambda x: x< stop, itertools.count(start, step))
@@ -126,14 +126,10 @@ class HeatCounter():
         setlast(getnow(), self.heat)
     def reset(self):
         self.sum_lum = self.sum_interval = self._count = 0
-    def _addheat(self, val):
-        if self.heatbuffer < self.heat:
-            self.heatbuffer += val
-        elif self.heatbuffer + val-1 > self.heat:
-            self.heatbuffer -= val
+    def _addheat(self):
+        self.heatbuffer += abscrop((self.heat - self.heatbuffer) // ACCEL_START, 1)        
     def getheat(self):
-        #self._addheat(HEAT_BUFFER_UNIT)
-        self.heatbuffer += abscrop((self.heat - self.heatbuffer) // ACCEL_START, 1)
+        self._addheat()
         return self.heatbuffer
 
 pi = pigpio.pi()
@@ -144,11 +140,6 @@ def change_lum(lightness):
 
 atexit.register(change_lum, 0)
 
-def bootup(value):
-    for v in range(BOOT_LUM, value, 200):
-        change_lum(v)
-        time.sleep(0.02)
-
 curve = (wave(x) for x in frange(-math.pi, math.pi, step))
 #curve3 = flatrepeat(curve,3)
 curveE = itertools.cycle(curve)
@@ -156,9 +147,6 @@ curveE = itertools.cycle(curve)
 prev, heat = getlast()
 heat_counter = HeatCounter(heat)
 heat_counter.count(0, getnow() - prev)
-heat_counter.heatbuffer = heat_counter.heat
-
-#bootup(MIN_LUM + heat_counter.heat)
 
 print(heat_counter.heatbuffer, heat_counter.heat)
 for i,v in enumerate(curveE):
