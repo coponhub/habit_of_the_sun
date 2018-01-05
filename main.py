@@ -9,27 +9,23 @@ import math
 import time
 import pigpio
 
-MAX_PWM_DUTY = 1000000
-BASE_INTERVAL = 0.04
-step = 0.0008
 PORT = 18
 FREQ = 2000
+MAX_PWM_DUTY = 1000000
 GRAD = 3
-MAX_LAZY = 6
-LAZY_GRAD = 8
+STEP = 0.0008
+BASE_INTERVAL = 0.04
+MAX_LAZY = 7
+LAZY_GRAD = 7
 MAX_LUM=100 * 10**4
-MIN_LUM=  7 * 10**4
-BOOT_LUM= 5 * 10**4
-LIFTER_LUM_DIFF = 10000
-MIN_LUM_LIFT=30000
-MIN_LUM_CEIL = MIN_LUM + MIN_LUM_LIFT
+MIN_LUM=  5 * 10**4
 HEAT_TICK = 20
 HEAT_DIVER = 100
-HEAT_BUFFER_UNIT = 4
-ACCEL_START = 10
-HEATER_GRAD= 1.002
-COOLER_CONST=        1 *10**-4
-COOLER_MULTI= 1 + 1640 *10**-4
+HEAT_BUFFER_INIT = 30000
+ACCEL_START = 40
+HEATER_GRAD= 1.0036
+COOLER_CONST=       1 *10**-6
+COOLER_MULTI= 1 + 440 *10**-3
 
 # class Accumrator():
 #     def __init__(self, slots={"x":0,"y":0}):
@@ -93,13 +89,13 @@ def cooldown(timerange, heat):
     return round(heat**COOLER_MULTI * timerange * COOLER_CONST)
 # Luminance, TimeRange -> Heat
 def heatup(lum_average, timerange):
-    v = lum_average // 100
-    return round((v + math.log(MAX_LUM-v,HEATER_GRAD)+1) * timerange)
+    v = lum_average // HEAT_DIVER
+    return round((v + math.log(MAX_LUM-v+1,HEATER_GRAD)) * timerange)
 class HeatCounter():
     def __init__(self, heat=0, tick=HEAT_TICK):
         self.tick = tick
         self.heat = heat
-        self.heatbuffer = 0
+        self.heatbuffer = HEAT_BUFFER_INIT
         self.reset()
 
     def count(self, lum, interval):
@@ -140,7 +136,7 @@ def change_lum(lightness):
 
 atexit.register(change_lum, 0)
 
-curve = (wave(x) for x in frange(-math.pi, math.pi, step))
+curve = (wave(x) for x in frange(-math.pi, math.pi, STEP))
 #curve3 = flatrepeat(curve,3)
 curveE = itertools.cycle(curve)
 
@@ -158,4 +154,4 @@ for i,v in enumerate(curveE):
     heat_counter.count(val,interval)
     if i % 100 == 0:
         t = time.strftime("%H:%M:%S", time.localtime())
-        print(v, val, t)
+        print(v, val, t, interval)
