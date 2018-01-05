@@ -25,7 +25,7 @@ HEAT_BUFFER_INIT = 30000
 ACCEL_START = 40
 HEATER_GRAD= 1.0036
 COOLER_CONST=       1 *10**-6
-COOLER_MULTI= 1 + 440 *10**-3
+COOLER_MULTI= 1 + 430 *10**-3
 
 # class Accumrator():
 #     def __init__(self, slots={"x":0,"y":0}):
