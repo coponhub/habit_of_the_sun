@@ -15,17 +15,16 @@ MAX_PWM_DUTY = 1000000
 GRAD = 3
 STEP = 0.0008
 BASE_INTERVAL = 0.04
-MAX_LAZY = 7
-LAZY_GRAD = 7
+MAX_LAZY = 6
+LAZY_GRAD = 8.2
 MAX_LUM=100 * 10**4
 MIN_LUM=  5 * 10**4
 HEAT_TICK = 20
 HEAT_DIVER = 100
-HEAT_BUFFER_INIT = 30000
-ACCEL_START = 40
-HEATER_GRAD= 1.0036
+ACCEL_START = 20
+HEATER_GRAD= 1.0024
 COOLER_CONST=       1 *10**-6
-COOLER_MULTI= 1 + 430 *10**-3
+COOLER_MULTI= 1 + 425 *10**-3
 
 # class Accumrator():
 #     def __init__(self, slots={"x":0,"y":0}):
@@ -95,7 +94,7 @@ class HeatCounter():
     def __init__(self, heat=0, tick=HEAT_TICK):
         self.tick = tick
         self.heat = heat
-        self.heatbuffer = HEAT_BUFFER_INIT
+        self.heatbuffer = 0
         self.reset()
 
     def count(self, lum, interval):
